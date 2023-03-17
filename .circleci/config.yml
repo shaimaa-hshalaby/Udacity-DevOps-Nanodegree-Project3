@@ -4,6 +4,23 @@ version: 2.1
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+orb:
+  slack: circleci/slack@4.1
+
+
+commands:
+  notify_failure:
+    steps:
+      - run:
+         name: notify slack
+         command: |
+          - slack/notify:
+              event: fail
+              mentions: '@EngineeringTeam'
+              template: basic_fail_1
+    when: on_fail
+
+
 jobs:
   build-frontend:
     docker:
@@ -21,6 +38,7 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
+      - notify_failure
 
   build-backend:
     docker:
@@ -38,6 +56,7 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - notify_failure
 
   test-frontend:
     docker:
@@ -52,7 +71,8 @@ jobs:
             cd frontend
             npm install
             npm run test      
-                
+      - notify_failure
+
   test-backend:
     docker:
        - image: circleci/node:13.8.0
@@ -66,6 +86,7 @@ jobs:
             cd backend
             npm install
             npm run test    
+     - notify_failure
 
   scan-frontend:
     docker:
@@ -83,6 +104,7 @@ jobs:
             npm audit fix --audit-level=critical --force
             npm audit fix --force
             npm audit --audit-level=critical     
+     - notify_failure
 
   scan-backend:
     docker:
@@ -99,7 +121,9 @@ jobs:
             # npm install oauth-sign@^0.9.0
             npm audit fix --audit-level=critical --force
             npm audit fix --force
-            npm audit --audit-level=critical     
+            npm audit --audit-level=critical   
+
+     - notify_failure
 
 # # Invoke jobs via workflows
 # # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
