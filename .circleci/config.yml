@@ -14,7 +14,7 @@ commands:
       - run:
          name: notify slack
          command: |
-          - slack/notify:
+           slack/notify:
               event: fail
               mentions: '@EngineeringTeam'
               template: basic_fail_1
