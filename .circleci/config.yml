@@ -18,6 +18,16 @@ version: 2.1
 #               mentions: '@EngineeringTeam'
 #               template: basic_fail_1
 
+commands:
+  destroy_infrastructure:
+    steps:
+      - run:
+          name: delete-stack
+          command: |
+           aws cloudformation delete-stack \
+            --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --region us-east-1
+          when: on_fail
 
 
 jobs:
@@ -124,6 +134,26 @@ jobs:
 
     #  - notify_failure
 
+
+  create_uda_people_infrastructure:
+  
+    docker:
+      - image: amazon/aws-cli
+    
+    steps:
+      - checkout
+      - run:
+          name: "Create Cloudformation Stack"
+          command: |
+            aws cloudformation deploy \
+            --template-file .circleci/files/backend.yml \
+            --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+            --tags project=udapeople
+            
+      - run: sleep 2m
+      - destroy_infrastructure
+
 # # Invoke jobs via workflows
 # # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -131,6 +161,7 @@ workflows:
     jobs:
       - build-frontend
       - build-backend
+      - create_uda_people_infrastructure
       - test-frontend:
           requires: [build-frontend]
       - test-backend:
