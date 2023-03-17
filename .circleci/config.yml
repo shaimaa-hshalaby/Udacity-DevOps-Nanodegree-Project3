@@ -165,7 +165,7 @@ jobs:
           command: |
             yum install -y tar gzip
            
-      - run: echo [all] >> ~/inventory.txt
+      - run: echo [web] >> ~/inventory.txt
       - run: 
           name: "Create Inventory File"
           command: |
@@ -180,6 +180,30 @@ jobs:
             - inventory.txt
       - destroy_infrastructure      
 
+  configure_infrastructure: 
+    docker:
+      - image: python:3.9-alpine3.16
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["09:5d:8c:8b:b0:46:63:a1:a7:a4:d3:a8:09:b7:12:d9"] 
+      - run:
+          name: Install Ansible
+          command: |
+            # Install Ansible
+            apk add --no-cache tar gzip
+            pip install ansible awscli
+            apk add openssh-client
+  #          apk add --update ansible
+      - attach_workspace:
+          at: ~/
+
+      - run:
+          name: Run Playbook and Configure server
+          command: 
+            # Your command
+            ansible-playbook -i ~/inventory.txt .circleci/ansible/configure-server.yml
+      - destroy_infrastructure
 
 # # Invoke jobs via workflows
 # # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -191,6 +215,9 @@ workflows:
       - create_uda_people_infrastructure
       - create_inventory:
           requires: [create_uda_people_infrastructure]
+      - configure_infrastructure:
+         requires:
+           - "create_inventory"
       - test-frontend:
           requires: [build-frontend]
       - test-backend:
