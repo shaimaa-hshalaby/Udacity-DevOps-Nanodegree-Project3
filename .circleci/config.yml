@@ -165,7 +165,7 @@ jobs:
           command: |
             yum install -y tar gzip
            
-      - run: echo [all] >> ~/inventory
+      - run: echo [all] >> ~/inventory.txt
       - run: 
           name: "Create Inventory File"
           command: |
