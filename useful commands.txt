@@ -1,0 +1,4 @@
+
+==> start prometheus
+
+sudo systemctl start prometheus
