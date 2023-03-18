@@ -229,20 +229,47 @@ jobs:
             # If you are using kvdb.io, generate the bucket ID "9GE4jRtKznmVKRfvdBABBe" in your local terminal first
             curl https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
            fi
-     # Here's where you will add some code to rollback on failure    
-# # Invoke jobs via workflows
-# # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+  deploy-frontend:
+    docker:
+       - image: amazon/aws-cli
+    steps:
+      # Checkout code from git
+      - run:
+          name: Install dependencies
+          command: |
+            
+            # install node js
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt install -y nodejs
+            sudo npm install --global n
+            sudo n 13.8.0
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$( aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters Name=tag:project,Values=udapeople)
+
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+
+
 workflows:
-  default:
+  udapeople-deployment-pipeline:
     jobs:
       - build-frontend
       - build-backend
-      - create_uda_people_infrastructure
-      - create_inventory:
-          requires: [create_uda_people_infrastructure]
-      - configure_infrastructure:
-         requires:
-           - "create_inventory"
       - test-frontend:
           requires: [build-frontend]
       - test-backend:
@@ -251,3 +278,18 @@ workflows:
           requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
+      - create_uda_people_infrastructure
+      - create_inventory:
+          requires: [create_uda_people_infrastructure]
+      - configure_infrastructure:
+         requires:
+           - "create_inventory"
+      - run-migrations:
+         requires:
+           - "configure_infrastructure"
+      - deploy-frontend:
+         requires:
+           - "run-migrations"
+
+
+
